@@ -127,11 +127,6 @@ def main():
     except KeyError:
         raise ValueError("Task not found: %s" % (data_args.task_name))
 
-    # Load pretrained model and tokenizer
-    #
-    # Distributed training:
-    # The .from_pretrained methods guarantee that only one local process can concurrently
-    # download model & vocab.
 
     config = AutoConfig.from_pretrained(
         model_args.config_name if model_args.config_name else model_args.model_name_or_path,
@@ -176,6 +171,19 @@ def main():
         else None
     )
 
+    test_dataset = (
+        MultipleChoiceDataset(
+            data_dir=data_args.data_dir,
+            tokenizer=tokenizer,
+            task=data_args.task_name,
+            max_seq_length=data_args.max_seq_length,
+            overwrite_cache=data_args.overwrite_cache,
+            mode=Split.test,
+        )
+        if training_args.do_predict
+        else None
+    )
+
     def compute_metrics(p: EvalPrediction) -> Dict:
         preds = np.argmax(p.predictions, axis=1)
         return {"acc": simple_accuracy(preds, p.label_ids)}
@@ -195,8 +203,7 @@ def main():
             model_path=model_args.model_name_or_path if os.path.isdir(model_args.model_name_or_path) else None
         )
         trainer.save_model()
-        # For convenience, we also re-save the tokenizer to the same directory,
-        # so that you can share your model easily on huggingface.co/models =)
+
         if trainer.is_world_master():
             tokenizer.save_pretrained(training_args.output_dir)
 
@@ -216,6 +223,20 @@ def main():
                     writer.write("%s = %s\n" % (key, value))
 
                 results.update(result)
+
+    if training_args.do_predict:
+        predictions, label_ids, metrics = trainer.predict(test_dataset)
+
+        # to do: save predictions and labels_id
+
+        output_eval_file = os.path.join(training_args.output_dir, "test_results.txt")
+
+        if trainer.is_world_master():
+            with open(output_eval_file, "w") as writer:
+                logger.info("***** Test results *****")
+                for key, value in metrics.items():
+                    logger.info("  %s = %s", key, value)
+                    writer.write("%s = %s\n" % (key, value))
 
     return results
 
