@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Optional
 
 import numpy as np
+import torch
 
 from transformers import (
     AutoConfig,
@@ -34,7 +35,6 @@ from transformers import (
     set_seed,
 )
 from utils_multiple_choice import MultipleChoiceDataset, Split, processors
-
 
 logger = logging.getLogger(__name__)
 
@@ -227,7 +227,11 @@ def main():
     if training_args.do_predict:
         predictions, label_ids, metrics = trainer.predict(test_dataset)
 
-        # to do: save predictions and labels_id
+        predictions_file = os.path.join(training_args.output_dir, "test_predictions")
+        labels_ids_file = os.path.join(training_args.output_dir, "test_labels_id")
+
+        torch.save(predictions, predictions_file)
+        torch.save(label_ids, labels_ids_file)
 
         output_eval_file = os.path.join(training_args.output_dir, "test_results.txt")
 

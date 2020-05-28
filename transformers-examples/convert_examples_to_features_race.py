@@ -37,10 +37,6 @@ from utils_multiple_choice import MultipleChoiceDataset, Split, processors
 logger = logging.getLogger(__name__)
 
 
-def simple_accuracy(preds, labels):
-    return (preds == labels).mean()
-
-
 @dataclass
 class ModelArguments:
     """
@@ -82,10 +78,6 @@ class DataTrainingArguments:
 
 
 def main():
-    # See all possible arguments in src/transformers/training_args.py
-    # or by passing the --help flag to this script.
-    # We now keep distinct sets of args, for a cleaner separation of concerns.
-
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
