@@ -1,0 +1,10 @@
+torch==1.4.0
+numpy
+
+transformers
+wandb
+
+tqdm
+requests
+boto3
+
