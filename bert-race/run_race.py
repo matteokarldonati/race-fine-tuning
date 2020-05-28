@@ -35,10 +35,6 @@ from pytorch_pretrained_bert.modeling import BertForMultipleChoice
 from pytorch_pretrained_bert.optimization import BertAdam
 from pytorch_pretrained_bert.tokenization import BertTokenizer
 
-# needed to use save features from transformers-examples
-import sys
-sys.path.insert(0, './race-fine-tuning/transformers-examples')
-
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
                     level=logging.INFO)
@@ -453,7 +449,7 @@ def main():
 
         cached_features_file_train = os.path.join(
             args.data_dir,
-            "cached_train_BertTokenizer_{}_{}".format(str(args.max_seq_length), 'race', ),
+            "cached_train_BertTokenizer_{}_{}_bert-race".format(str(args.max_seq_length), 'race', ),
         )
 
         if os.path.exists(cached_features_file_train):
@@ -528,7 +524,7 @@ def main():
 
                 cached_features_file_eval = os.path.join(
                     args.data_dir,
-                    "cached_dev_BertTokenizer_{}_{}".format(str(args.max_seq_length), 'race', ),
+                    "cached_dev_BertTokenizer_{}_{}_bert-race".format(str(args.max_seq_length), 'race', ),
                 )
 
                 if os.path.exists(cached_features_file_eval):
@@ -579,7 +575,7 @@ def main():
                           'global_step': global_step,
                           'loss': tr_loss / nb_tr_steps}
 
-                wandb.log({'eval_loss': eval_loss, 'eval_acc':eval_accuracy}, step=global_step)
+                wandb.log({'eval_loss': eval_loss, 'eval_acc': eval_accuracy}, step=global_step)
 
                 output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
                 with open(output_eval_file, "a+") as writer:
