@@ -15,7 +15,6 @@
 # limitations under the License.
 """ Multiple choice fine-tuning: utilities to work with multiple choice tasks of reading comprehension """
 
-
 import csv
 import glob
 import json
@@ -27,9 +26,7 @@ from typing import List, Optional
 
 import tqdm
 from filelock import FileLock
-
 from transformers import PreTrainedTokenizer, is_tf_available, is_torch_available
-
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +76,7 @@ if is_torch_available():
     import torch
     from torch.utils.data.dataset import Dataset
 
+
     class MultipleChoiceDataset(Dataset):
         """
         This will be superseded by a framework-agnostic approach
@@ -88,26 +86,32 @@ if is_torch_available():
         features: List[InputFeatures]
 
         def __init__(
-            self,
-            data_dir: str,
-            tokenizer: PreTrainedTokenizer,
-            task: str,
-            max_seq_length: Optional[int] = None,
-            overwrite_cache=False,
-            mode: Split = Split.train,
+                self,
+                data_dir: str,
+                tokenizer: PreTrainedTokenizer,
+                task: str,
+                max_seq_length: Optional[int] = None,
+                overwrite_cache=False,
+                mode: Split = Split.train,
+                group=None  # used only for RACE, can be 'middle' or 'high',
         ):
             processor = processors[task]()
 
-            cached_features_file = os.path.join(
-                data_dir,
-                "cached_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length), task,),
-            )
+            if group is not None:
+                cached_features_file = os.path.join(
+                    data_dir,
+                    "cached_{}_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length), task, group,),
+                )
+            else:
+                cached_features_file = os.path.join(
+                    data_dir,
+                    "cached_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length), task, ),
+                )
 
             # Make sure only the first process in distributed training processes the dataset,
             # and the others will use the cache.
             lock_path = cached_features_file + ".lock"
             with FileLock(lock_path):
-
                 if os.path.exists(cached_features_file) and not overwrite_cache:
                     logger.info(f"Loading features from cached file {cached_features_file}")
                     self.features = torch.load(cached_features_file)
@@ -117,7 +121,7 @@ if is_torch_available():
                     if mode == Split.dev:
                         examples = processor.get_dev_examples(data_dir)
                     elif mode == Split.test:
-                        examples = processor.get_test_examples(data_dir)
+                        examples = processor.get_test_examples(data_dir, group=group)
                     else:
                         examples = processor.get_train_examples(data_dir)
                     logger.info("Training examples: %s", len(examples))
@@ -140,9 +144,9 @@ if is_torch_available():
         def __getitem__(self, i) -> InputFeatures:
             return self.features[i]
 
-
 if is_tf_available():
     import tensorflow as tf
+
 
     class TFMultipleChoiceDataset:
         """
@@ -153,13 +157,13 @@ if is_tf_available():
         features: List[InputFeatures]
 
         def __init__(
-            self,
-            data_dir: str,
-            tokenizer: PreTrainedTokenizer,
-            task: str,
-            max_seq_length: Optional[int] = 128,
-            overwrite_cache=False,
-            mode: Split = Split.train,
+                self,
+                data_dir: str,
+                tokenizer: PreTrainedTokenizer,
+                task: str,
+                max_seq_length: Optional[int] = 128,
+                overwrite_cache=False,
+                mode: Split = Split.train,
         ):
             processor = processors[task]()
 
@@ -271,14 +275,19 @@ class RaceProcessor(DataProcessor):
         middle = self._read_txt(middle)
         return self._create_examples(high + middle, "dev")
 
-    def get_test_examples(self, data_dir):
+    def get_test_examples(self, data_dir, group=None):
         """See base class."""
         logger.info("LOOKING AT {} test".format(data_dir))
         high = os.path.join(data_dir, "test/high")
         middle = os.path.join(data_dir, "test/middle")
         high = self._read_txt(high)
         middle = self._read_txt(middle)
-        return self._create_examples(high + middle, "test")
+        if group == 'high':
+            return self._create_examples(high, "test")
+        elif group == 'middle':
+            return self._create_examples(middle, "test")
+        else:
+            return self._create_examples(high + middle, "test")
 
     def get_labels(self):
         """See base class."""
@@ -506,14 +515,14 @@ class ArcProcessor(DataProcessor):
 
 
 def convert_examples_to_features(
-    examples: List[InputExample],
-    label_list: List[str],
-    max_length: int,
-    tokenizer: PreTrainedTokenizer,
-    pad_token_segment_id=0,
-    pad_on_left=False,
-    pad_token=0,
-    mask_padding_with_zero=True,
+        examples: List[InputExample],
+        label_list: List[str],
+        max_length: int,
+        tokenizer: PreTrainedTokenizer,
+        pad_token_segment_id=0,
+        pad_on_left=False,
+        pad_token=0,
+        mask_padding_with_zero=True,
 ) -> List[InputFeatures]:
     """
     Loads a data file into a list of `InputFeatures`

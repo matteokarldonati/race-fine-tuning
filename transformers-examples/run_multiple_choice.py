@@ -184,6 +184,34 @@ def main():
         else None
     )
 
+    test_dataset_high = (
+        MultipleChoiceDataset(
+            data_dir=data_args.data_dir,
+            tokenizer=tokenizer,
+            task=data_args.task_name,
+            max_seq_length=data_args.max_seq_length,
+            overwrite_cache=data_args.overwrite_cache,
+            mode=Split.test,
+            group='high',
+        )
+        if training_args.do_predict
+        else None
+    )
+
+    test_dataset_middle = (
+        MultipleChoiceDataset(
+            data_dir=data_args.data_dir,
+            tokenizer=tokenizer,
+            task=data_args.task_name,
+            max_seq_length=data_args.max_seq_length,
+            overwrite_cache=data_args.overwrite_cache,
+            mode=Split.test,
+            group='middle',
+        )
+        if training_args.do_predict
+        else None
+    )
+
     def compute_metrics(p: EvalPrediction) -> Dict:
         preds = np.argmax(p.predictions, axis=1)
         return {"acc": simple_accuracy(preds, p.label_ids)}
@@ -226,12 +254,26 @@ def main():
 
     if training_args.do_predict:
         predictions, label_ids, metrics = trainer.predict(test_dataset)
+        predictions_high, label_ids_high, metrics_high = trainer.predict(test_dataset_high)
+        predictions_middle, label_ids_middle, metrics_middle = trainer.predict(test_dataset_middle)
 
         predictions_file = os.path.join(training_args.output_dir, "test_predictions")
         labels_ids_file = os.path.join(training_args.output_dir, "test_labels_id")
 
+        predictions_file_high = os.path.join(training_args.output_dir, "test_predictions_high")
+        labels_ids_file_high = os.path.join(training_args.output_dir, "test_labels_id_high")
+
+        predictions_file_middle = os.path.join(training_args.output_dir, "test_predictions_middle")
+        labels_ids_file_middle = os.path.join(training_args.output_dir, "test_labels_id_middle")
+
         torch.save(predictions, predictions_file)
         torch.save(label_ids, labels_ids_file)
+
+        torch.save(predictions_high, predictions_file_high)
+        torch.save(label_ids_high, labels_ids_file_high)
+
+        torch.save(predictions_middle, predictions_file_middle)
+        torch.save(label_ids_middle, labels_ids_file_middle)
 
         output_eval_file = os.path.join(training_args.output_dir, "test_results.txt")
 
@@ -241,6 +283,12 @@ def main():
                 for key, value in metrics.items():
                     logger.info("  %s = %s", key, value)
                     writer.write("%s = %s\n" % (key, value))
+                for key, value in metrics_high.items():
+                    logger.info("  high %s = %s", key, value)
+                    writer.write("high %s = %s\n" % (key, value))
+                for key, value in metrics_middle.items():
+                    logger.info("  middle %s = %s", key, value)
+                    writer.write("middle %s = %s\n" % (key, value))
 
     return results
 
