@@ -78,7 +78,7 @@ class DataTrainingArguments:
             "than this will be truncated, sequences shorter will be padded."
         },
     )
-    coref_solved: bool = field(
+    solve_coref: bool = field(
         default=False, metadata={"help": "preprocess examples by performing coreference resolution"}
     )
     overwrite_cache: bool = field(
@@ -157,6 +157,7 @@ def main():
             max_seq_length=data_args.max_seq_length,
             overwrite_cache=data_args.overwrite_cache,
             mode=Split.train,
+            solve_coref=data_args.solve_coref,
         )
         if training_args.do_train
         else None
@@ -169,6 +170,7 @@ def main():
             max_seq_length=data_args.max_seq_length,
             overwrite_cache=data_args.overwrite_cache,
             mode=Split.dev,
+            solve_coref=data_args.solve_coref,
         )
         if training_args.do_eval
         else None
@@ -182,6 +184,7 @@ def main():
             max_seq_length=data_args.max_seq_length,
             overwrite_cache=data_args.overwrite_cache,
             mode=Split.test,
+            solve_coref=data_args.solve_coref,
         )
         if training_args.do_predict
         else None
@@ -195,6 +198,7 @@ def main():
             max_seq_length=data_args.max_seq_length,
             overwrite_cache=data_args.overwrite_cache,
             mode=Split.test,
+            solve_coref=data_args.solve_coref,
             group='high',
         )
         if training_args.do_predict
@@ -209,6 +213,7 @@ def main():
             max_seq_length=data_args.max_seq_length,
             overwrite_cache=data_args.overwrite_cache,
             mode=Split.test,
+            solve_coref=data_args.solve_coref,
             group='middle',
         )
         if training_args.do_predict
