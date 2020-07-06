@@ -32,24 +32,25 @@ from transformers import PreTrainedTokenizer, is_tf_available, is_torch_availabl
 nlp = spacy.load('en_core_web_sm')
 
 import neuralcoref
-neuralcoref.add_to_pipe(nlp)
 
+neuralcoref.add_to_pipe(nlp)
 
 logger = logging.getLogger(__name__)
 
+
 def coref_resolution(string):
     doc = nlp(string)
+    clusters = doc._.coref_clusters
 
-    if doc._.has_coref:
-
-        clusters = doc._.coref_clusters
-
-        for c in clusters:
-            for i in range(1, len(c)):
-                new = str(c[i]) + ' (' + str(c[0]) + ')'
-                string = string.replace(str(c[i]), new)
-
-    return string
+    resolved = list(tok.text_with_ws for tok in doc)
+    for cluster in clusters:
+        for coref in cluster:
+            if coref != cluster.main:
+                resolved[coref.start] = str(coref) + ' (' + str(cluster.main.text) + ')' + str(
+                    doc[coref.end - 1].whitespace_)
+                for i in range(coref.start + 1, coref.end):
+                    resolved[i] = ""
+    return ''.join(resolved)
 
 
 @dataclass(frozen=True)
@@ -114,7 +115,7 @@ if is_torch_available():
                 max_seq_length: Optional[int] = None,
                 overwrite_cache=False,
                 mode: Split = Split.train,
-                solve_coref=False, # Whether or not to preprocess examples by solving coreference resolution
+                solve_coref=False,  # Whether or not to preprocess examples by solving coreference resolution
                 group=None  # used only for RACE, can be 'middle' or 'high',
         ):
             processor = processors[task]()
@@ -123,23 +124,27 @@ if is_torch_available():
                 if group is not None:
                     cached_features_file = os.path.join(
                         data_dir,
-                        "cached_{}_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length), task, group,),
+                        "cached_{}_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length),
+                                                       task, group, ),
                     )
                 else:
                     cached_features_file = os.path.join(
                         data_dir,
-                        "cached_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length), task, ),
+                        "cached_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length),
+                                                    task, ),
                     )
             else:
                 if group is not None:
                     cached_features_file = os.path.join(
                         data_dir,
-                        "cached_coref_{}_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length), task, group,),
+                        "cached_coref_{}_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__,
+                                                             str(max_seq_length), task, group, ),
                     )
                 else:
                     cached_features_file = os.path.join(
                         data_dir,
-                        "cached_coref_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length), task, ),
+                        "cached_coref_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length),
+                                                          task, ),
                     )
 
             # Make sure only the first process in distributed training processes the dataset,

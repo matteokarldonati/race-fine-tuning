@@ -15,7 +15,6 @@
 # limitations under the License.
 """ Finetuning the library models for multiple choice (Bert, Roberta, XLNet)."""
 
-
 import logging
 import os
 from dataclasses import dataclass, field
@@ -23,7 +22,6 @@ from typing import Dict, Optional
 
 import numpy as np
 import torch
-
 from transformers import (
     AutoConfig,
     AutoModelForMultipleChoice,
@@ -75,7 +73,7 @@ class DataTrainingArguments:
         default=128,
         metadata={
             "help": "The maximum total input sequence length after tokenization. Sequences longer "
-            "than this will be truncated, sequences shorter will be padded."
+                    "than this will be truncated, sequences shorter will be padded."
         },
     )
     solve_coref: bool = field(
@@ -95,10 +93,10 @@ def main():
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     if (
-        os.path.exists(training_args.output_dir)
-        and os.listdir(training_args.output_dir)
-        and training_args.do_train
-        and not training_args.overwrite_output_dir
+            os.path.exists(training_args.output_dir)
+            and os.listdir(training_args.output_dir)
+            and training_args.do_train
+            and not training_args.overwrite_output_dir
     ):
         raise ValueError(
             f"Output directory ({training_args.output_dir}) already exists and is not empty. Use --overwrite_output_dir to overcome."
@@ -129,7 +127,6 @@ def main():
         num_labels = len(label_list)
     except KeyError:
         raise ValueError("Task not found: %s" % (data_args.task_name))
-
 
     config = AutoConfig.from_pretrained(
         model_args.config_name if model_args.config_name else model_args.model_name_or_path,
