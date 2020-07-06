@@ -78,6 +78,9 @@ class DataTrainingArguments:
             "than this will be truncated, sequences shorter will be padded."
         },
     )
+    coref_solved: bool = field(
+        default=False, metadata={"help": "preprocess examples by performing coreference resolution"}
+    )
     overwrite_cache: bool = field(
         default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
     )

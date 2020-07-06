@@ -24,11 +24,32 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional
 
+import spacy
 import tqdm
 from filelock import FileLock
 from transformers import PreTrainedTokenizer, is_tf_available, is_torch_available
 
+nlp = spacy.load('en_core_web_sm')
+
+import neuralcoref
+neuralcoref.add_to_pipe(nlp)
+
+
 logger = logging.getLogger(__name__)
+
+def coref_resolution(string):
+    doc = nlp(string)
+
+    if doc._.has_coref:
+
+        clusters = doc._.coref_clusters
+
+        for c in clusters:
+            for i in range(1, len(c)):
+                new = str(c[i]) + ' (' + str(c[0]) + ')'
+                string = string.replace(str(c[i]), new)
+
+    return string
 
 
 @dataclass(frozen=True)
@@ -93,20 +114,33 @@ if is_torch_available():
                 max_seq_length: Optional[int] = None,
                 overwrite_cache=False,
                 mode: Split = Split.train,
+                solve_coref=False, # Whether or not to preprocess examples by solving coreference resolution
                 group=None  # used only for RACE, can be 'middle' or 'high',
         ):
             processor = processors[task]()
 
-            if group is not None:
-                cached_features_file = os.path.join(
-                    data_dir,
-                    "cached_{}_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length), task, group,),
-                )
+            if solve_coref is False:
+                if group is not None:
+                    cached_features_file = os.path.join(
+                        data_dir,
+                        "cached_{}_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length), task, group,),
+                    )
+                else:
+                    cached_features_file = os.path.join(
+                        data_dir,
+                        "cached_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length), task, ),
+                    )
             else:
-                cached_features_file = os.path.join(
-                    data_dir,
-                    "cached_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length), task, ),
-                )
+                if group is not None:
+                    cached_features_file = os.path.join(
+                        data_dir,
+                        "cached_coref_{}_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length), task, group,),
+                    )
+                else:
+                    cached_features_file = os.path.join(
+                        data_dir,
+                        "cached_coref_{}_{}_{}_{}".format(mode.value, tokenizer.__class__.__name__, str(max_seq_length), task, ),
+                    )
 
             # Make sure only the first process in distributed training processes the dataset,
             # and the others will use the cache.
@@ -119,11 +153,11 @@ if is_torch_available():
                     logger.info(f"Creating features from dataset file at {data_dir}")
                     label_list = processor.get_labels()
                     if mode == Split.dev:
-                        examples = processor.get_dev_examples(data_dir)
+                        examples = processor.get_dev_examples(data_dir, solve_coref)
                     elif mode == Split.test:
-                        examples = processor.get_test_examples(data_dir, group=group)
+                        examples = processor.get_test_examples(data_dir, solve_coref, group=group)
                     else:
-                        examples = processor.get_train_examples(data_dir)
+                        examples = processor.get_train_examples(data_dir, solve_coref)
                     logger.info("Training examples: %s", len(examples))
                     # TODO clean up all this to leverage built-in features of tokenizers
                     self.features = convert_examples_to_features(
@@ -257,25 +291,25 @@ class DataProcessor:
 class RaceProcessor(DataProcessor):
     """Processor for the RACE data set."""
 
-    def get_train_examples(self, data_dir):
+    def get_train_examples(self, data_dir, solve_coref=False):
         """See base class."""
         logger.info("LOOKING AT {} train".format(data_dir))
         high = os.path.join(data_dir, "train/high")
         middle = os.path.join(data_dir, "train/middle")
         high = self._read_txt(high)
         middle = self._read_txt(middle)
-        return self._create_examples(high + middle, "train")
+        return self._create_examples(high + middle, "train", solve_coref)
 
-    def get_dev_examples(self, data_dir):
+    def get_dev_examples(self, data_dir, solve_coref=False):
         """See base class."""
         logger.info("LOOKING AT {} dev".format(data_dir))
         high = os.path.join(data_dir, "dev/high")
         middle = os.path.join(data_dir, "dev/middle")
         high = self._read_txt(high)
         middle = self._read_txt(middle)
-        return self._create_examples(high + middle, "dev")
+        return self._create_examples(high + middle, "dev", solve_coref)
 
-    def get_test_examples(self, data_dir, group=None):
+    def get_test_examples(self, data_dir, solve_coref=False, group=None):
         """See base class."""
         logger.info("LOOKING AT {} test".format(data_dir))
         high = os.path.join(data_dir, "test/high")
@@ -283,11 +317,11 @@ class RaceProcessor(DataProcessor):
         high = self._read_txt(high)
         middle = self._read_txt(middle)
         if group == 'high':
-            return self._create_examples(high, "test")
+            return self._create_examples(high, "test", solve_coref)
         elif group == 'middle':
-            return self._create_examples(middle, "test")
+            return self._create_examples(middle, "test", solve_coref)
         else:
-            return self._create_examples(high + middle, "test")
+            return self._create_examples(high + middle, "test", solve_coref)
 
     def get_labels(self):
         """See base class."""
@@ -303,16 +337,26 @@ class RaceProcessor(DataProcessor):
                 lines.append(data_raw)
         return lines
 
-    def _create_examples(self, lines, set_type):
+    def _create_examples(self, lines, set_type, solve_coref):
         """Creates examples for the training and dev sets."""
         examples = []
         for (_, data_raw) in enumerate(lines):
             race_id = "%s-%s" % (set_type, data_raw["race_id"])
             article = data_raw["article"]
+
+            if solve_coref:
+                article = coref_resolution(article)
+
             for i in range(len(data_raw["answers"])):
                 truth = str(ord(data_raw["answers"][i]) - ord("A"))
                 question = data_raw["questions"][i]
                 options = data_raw["options"][i]
+
+                if solve_coref:
+                    question = coref_resolution(question)
+
+                    for i, option in enumerate(options):
+                        options[i] = coref_resolution(option)
 
                 examples.append(
                     InputExample(
