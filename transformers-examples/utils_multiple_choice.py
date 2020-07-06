@@ -340,12 +340,15 @@ class RaceProcessor(DataProcessor):
     def _create_examples(self, lines, set_type, solve_coref):
         """Creates examples for the training and dev sets."""
         examples = []
-        for (_, data_raw) in enumerate(lines):
+        for (ix, data_raw) in tqdm.tqdm(enumerate(lines), desc="create examples"):
             race_id = "%s-%s" % (set_type, data_raw["race_id"])
             article = data_raw["article"]
 
             if solve_coref:
                 article = coref_resolution(article)
+
+                if ix == 0:
+                    logger.info(f"coreference resolution for first example:\n {article}")
 
             for i in range(len(data_raw["answers"])):
                 truth = str(ord(data_raw["answers"][i]) - ord("A"))
