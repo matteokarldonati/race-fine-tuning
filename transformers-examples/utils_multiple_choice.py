@@ -348,7 +348,7 @@ class RaceProcessor(DataProcessor):
                 article = coref_resolution(article)
 
                 if ix == 0:
-                    logger.info(f"coreference resolution for first example:\n {article}")
+                    logger.info(f"coreference resolution for example {race_id}:\n {article}")
 
             for i in range(len(data_raw["answers"])):
                 truth = str(ord(data_raw["answers"][i]) - ord("A"))
