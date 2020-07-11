@@ -22,6 +22,7 @@ from typing import Dict, Optional
 
 import numpy as np
 import torch
+import torch.nn as nn
 from transformers import (
     AutoConfig,
     AutoModelForMultipleChoice,
@@ -75,6 +76,13 @@ class DataTrainingArguments:
             "help": "The maximum total input sequence length after tokenization. Sequences longer "
                     "than this will be truncated, sequences shorter will be padded."
         },
+    )
+    reinit_pooler: bool = field(
+        default=False, metadata={"help": "reinit pooler"}
+    )
+    reinit_layer: int = field(
+        default=0,
+        metadata={"help": "number of layer to re-initialize"},
     )
     solve_coref: bool = field(
         default=False, metadata={"help": "preprocess examples by performing coreference resolution"}
@@ -145,7 +153,66 @@ def main():
         cache_dir=model_args.cache_dir,
     )
 
-    # Get datasets
+    if data_args.reinit_pooler:
+        if model_args.model_type in ["bert", "roberta"]:
+            encoder_temp = getattr(model, model_args.model_type)
+            encoder_temp.pooler.dense.weight.data.normal_(mean=0.0, std=encoder_temp.config.initializer_range)
+            encoder_temp.pooler.dense.bias.data.zero_()
+            for p in encoder_temp.pooler.parameters():
+                p.requires_grad = True
+        elif model_args.model_type in ["xlnet", "bart", "electra"]:
+            raise ValueError(f"{model_args.model_type} does not have a pooler at the end")
+        else:
+            raise NotImplementedError
+
+    if data_args.reinit_layers > 0:
+        if model_args.model_type in ["bert", "roberta", "electra"]:
+            assert data_args.reinit_pooler or model_args.model_type == "electra"
+            from transformers.modeling_bert import BertLayerNorm
+
+            encoder_temp = getattr(model, model_args.model_type)
+            for layer in encoder_temp.encoder.layer[-data_args.reinit_layers:]:
+                for module in layer.modules():
+                    if isinstance(module, (nn.Linear, nn.Embedding)):
+                        module.weight.data.normal_(mean=0.0, std=encoder_temp.config.initializer_range)
+                    elif isinstance(module, BertLayerNorm):
+                        module.bias.data.zero_()
+                        module.weight.data.fill_(1.0)
+                    if isinstance(module, nn.Linear) and module.bias is not None:
+                        module.bias.data.zero_()
+        elif model_args.model_type == "xlnet":
+            from transformers.modeling_xlnet import XLNetLayerNorm, XLNetRelativeAttention
+
+            for layer in model.transformer.layer[-data_args.reinit_layers:]:
+                for module in layer.modules():
+                    if isinstance(module, (nn.Linear, nn.Embedding)):
+                        module.weight.data.normal_(mean=0.0, std=model.transformer.config.initializer_range)
+                        if isinstance(module, nn.Linear) and module.bias is not None:
+                            module.bias.data.zero_()
+                    elif isinstance(module, XLNetLayerNorm):
+                        module.bias.data.zero_()
+                        module.weight.data.fill_(1.0)
+                    elif isinstance(module, XLNetRelativeAttention):
+                        for param in [
+                            module.q,
+                            module.k,
+                            module.v,
+                            module.o,
+                            module.r,
+                            module.r_r_bias,
+                            module.r_s_bias,
+                            module.r_w_bias,
+                            module.seg_embed,
+                        ]:
+                            param.data.normal_(mean=0.0, std=model.transformer.config.initializer_range)
+        elif model_args.model_type == "bart":
+            for layer in model.model.decoder.layers[-data_args.reinit_layers:]:
+                for module in layer.modules():
+                    model.model._init_weights(module)
+
+        else:
+            raise NotImplementedError
+
     train_dataset = (
         MultipleChoiceDataset(
             data_dir=data_args.data_dir,
