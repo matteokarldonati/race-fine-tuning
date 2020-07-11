@@ -60,6 +60,9 @@ class ModelArguments:
     cache_dir: Optional[str] = field(
         default=None, metadata={"help": "Where do you want to store the pretrained models downloaded from s3"}
     )
+    model_type: str = field(
+        default=None, metadata={"help": "model type"}
+    )
 
 
 @dataclass
@@ -80,9 +83,9 @@ class DataTrainingArguments:
     reinit_pooler: bool = field(
         default=False, metadata={"help": "reinit pooler"}
     )
-    reinit_layer: int = field(
+    reinit_layers: int = field(
         default=0,
-        metadata={"help": "number of layer to re-initialize"},
+        metadata={"help": "number of layers to re-initialize"},
     )
     solve_coref: bool = field(
         default=False, metadata={"help": "preprocess examples by performing coreference resolution"}
