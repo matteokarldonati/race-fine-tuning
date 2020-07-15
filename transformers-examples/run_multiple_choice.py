@@ -33,8 +33,8 @@ from transformers import (
     TrainingArguments,
     set_seed,
 )
-from utils_multiple_choice import MultipleChoiceDataset, Split, processors
 from utils import FreeLBTrainer
+from utils_multiple_choice import MultipleChoiceDataset, Split, processors
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +81,6 @@ class DataTrainingArguments:
                     "than this will be truncated, sequences shorter will be padded."
         },
     )
-    freelb: bool = field(
-        default=False, metadata={"help": "Use FreeLB training"}
-    )
     reinit_pooler: bool = field(
         default=False, metadata={"help": "reinit pooler"}
     )
@@ -96,6 +93,12 @@ class DataTrainingArguments:
     )
     overwrite_cache: bool = field(
         default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
+    )
+
+
+class TrainingArguments(TrainingArguments):
+    freelb: bool = field(
+        default=False, metadata={"help": "Use FreeLB training"}
     )
     adv_lr: float = field(
         default=0
@@ -112,7 +115,6 @@ class DataTrainingArguments:
     adv_max_norm: float = field(
         default=0, metadata={"help": "set to 0 to be unlimited"}
     )
-
 
 
 def main():
