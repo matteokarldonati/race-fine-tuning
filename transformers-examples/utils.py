@@ -276,28 +276,18 @@ class FreeLBTrainer(transformers.Trainer):
         #batch = tuple(t.to(self.args.device) for t in inputs)
 
         for k, v in inputs.items():
-            print(k, v)
             if isinstance(v, torch.Tensor):
                 inputs[k] = v.to(self.args.device)
 
         # using adaptive sequence length
-        max_seq_len = torch.max(torch.sum(batch[1], 1)).item()
-        batch = [t[:, :max_seq_len] for t in batch[:3]] + [batch[3]]
-        if max_seq_len > self.global_max_seq_len:
-            self.global_max_seq_len = max_seq_len
-
-        inputs = {"attention_mask": batch[1], "labels": batch[3]}
-        if self.args.model_type != "distilbert":
-            inputs["token_type_ids"] = (
-                batch[2] if self.args.model_type in ["bert", "xlnet", "albert"] else None
-            )
+        ## TO DO: add missing part
 
         # ============= Code for adversarial training =============
         # initialize delta
         if isinstance(model, torch.nn.DataParallel):
-            embeds_init = model.module.encoder.embeddings.word_embeddings(batch[0])
+            embeds_init = model.module.encoder.embeddings.word_embeddings(inputs['input_ids'])
         else:
-            embeds_init = model.encoder.embeddings.word_embeddings(batch[0])
+            embeds_init = model.encoder.embeddings.word_embeddings(inputs['input_ids'])
         if self.args.adv_init_mag > 0:
 
             input_mask = inputs['attention_mask'].to(embeds_init)
@@ -371,9 +361,9 @@ class FreeLBTrainer(transformers.Trainer):
                 exit()
 
             if isinstance(model, torch.nn.DataParallel):
-                embeds_init = model.module.encoder.embeddings.word_embeddings(batch[0])
+                embeds_init = model.module.encoder.embeddings.word_embeddings(inputs['input_ids'])
             else:
-                embeds_init = model.encoder.embeddings.word_embeddings(batch[0])
+                embeds_init = model.encoder.embeddings.word_embeddings(inputs['input_ids'])
 
         if self.args.past_index >= 0:
             self._past = outputs[self.args.past_index]
