@@ -294,18 +294,12 @@ class FreeLBTrainer(transformers.Trainer):
             input_lengths = torch.sum(input_mask, 1)
             # check the shape of the mask here..
 
-            print(input_mask.shape)
-            print(embeds_init.shape)
-
             if self.args.norm_type == "l2":
                 delta = torch.zeros_like(embeds_init).uniform_(-1, 1) * input_mask.unsqueeze(3)
                 dims = input_lengths * embeds_init.size(-1)
                 mag = self.args.adv_init_mag / torch.sqrt(dims)
 
-                print(delta.shape)
-                print(mag.view(-1, 1, 1).shape)
-
-                delta = (delta * mag.view(-1, 1, 1)).detach()
+                delta = (delta * mag.view(-1, 4, 1, 1)).detach()
             elif self.args.norm_type == "linf":
                 delta = torch.zeros_like(embeds_init).uniform_(-self.args.adv_init_mag,
                                                                self.args.adv_init_mag) * input_mask.unsqueeze(3)
