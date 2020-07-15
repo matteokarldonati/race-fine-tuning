@@ -25,7 +25,7 @@ import requests
 from filelock import FileLock
 from tqdm.auto import tqdm
 
-from . import __version__
+from transformers import __version__
 
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name

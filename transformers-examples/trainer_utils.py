@@ -4,7 +4,7 @@ from typing import Dict, NamedTuple, Optional
 
 import numpy as np
 
-from .file_utils import is_tf_available, is_torch_available
+from file_utils import is_tf_available, is_torch_available
 
 
 try:
