@@ -273,7 +273,12 @@ class FreeLBTrainer(transformers.Trainer):
         tr_loss = 0
 
         model.train()
-        batch = tuple(t.to(self.args.device) for t in inputs)
+        #batch = tuple(t.to(self.args.device) for t in inputs)
+
+        for k, v in inputs.items():
+            print(k, v)
+            if isinstance(v, torch.Tensor):
+                inputs[k] = v.to(self.args.device)
 
         # using adaptive sequence length
         max_seq_len = torch.max(torch.sum(batch[1], 1)).item()
