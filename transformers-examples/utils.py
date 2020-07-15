@@ -290,7 +290,7 @@ class FreeLBTrainer(transformers.Trainer):
             embeds_init = model.bert.embeddings.word_embeddings(inputs['input_ids'])
         if self.args.adv_init_mag > 0:
 
-            input_mask = inputs['attention_mask'].to(embeds_init)
+            input_mask = inputs['attention_mask'].to(embeds_init).unsqueeze(3)
             input_lengths = torch.sum(input_mask, 1)
             # check the shape of the mask here..
 
