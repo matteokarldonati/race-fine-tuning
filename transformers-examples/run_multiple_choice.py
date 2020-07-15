@@ -34,6 +34,7 @@ from transformers import (
     set_seed,
 )
 from utils_multiple_choice import MultipleChoiceDataset, Split, processors
+from utils import FreeLBTrainer
 
 logger = logging.getLogger(__name__)
 
@@ -80,19 +81,38 @@ class DataTrainingArguments:
                     "than this will be truncated, sequences shorter will be padded."
         },
     )
+    freelb: bool = field(
+        default=False, metadata={"help": "Use FreeLB training"}
+    )
     reinit_pooler: bool = field(
         default=False, metadata={"help": "reinit pooler"}
     )
     reinit_layers: int = field(
         default=0,
-        metadata={"help": "number of layers to re-initialize"},
+        metadata={"help": "Number of layers to re-initialize"},
     )
     solve_coref: bool = field(
-        default=False, metadata={"help": "preprocess examples by performing coreference resolution"}
+        default=False, metadata={"help": "Preprocess examples by performing coreference resolution"}
     )
     overwrite_cache: bool = field(
         default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
     )
+    adv_lr: float = field(
+        default=0
+    )
+    adv_steps: int = field(
+        default=1, metadata={"help": "should be at least 1"}
+    )
+    adv_init_mag: float = field(
+        default=0
+    )
+    norm_type: str = field(
+        default='l2', choices=["l2", "linf"]
+    )
+    adv_max_norm: float = field(
+        default=0, metadata={"help": "set to 0 to be unlimited"}
+    )
+
 
 
 def main():
@@ -292,13 +312,22 @@ def main():
         return {"acc": simple_accuracy(preds, p.label_ids)}
 
     # Initialize our Trainer
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
-        compute_metrics=compute_metrics,
-    )
+    if training_args.freelb:
+        trainer = FreeLBTrainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            compute_metrics=compute_metrics,
+        )
+    else:
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            compute_metrics=compute_metrics,
+        )
 
     # Training
     if training_args.do_train:
