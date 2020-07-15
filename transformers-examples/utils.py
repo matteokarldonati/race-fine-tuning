@@ -294,6 +294,9 @@ class FreeLBTrainer(transformers.Trainer):
             input_lengths = torch.sum(input_mask, 1)
             # check the shape of the mask here..
 
+            print(input_mask.shape)
+            print(embeds_init.shape)
+
             if self.args.norm_type == "l2":
                 delta = torch.zeros_like(embeds_init).uniform_(-1, 1) * input_mask.unsqueeze(2)
                 dims = input_lengths * embeds_init.size(-1)
