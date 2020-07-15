@@ -10,8 +10,8 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from tqdm.auto import tqdm, trange
 
-from .file_utils import is_apex_available, is_torch_tpu_available
-from .trainer_utils import (
+from file_utils import is_apex_available, is_torch_tpu_available
+from trainer_utils import (
     PREFIX_CHECKPOINT_DIR,
     TrainOutput,
     is_wandb_available,
