@@ -301,6 +301,10 @@ class FreeLBTrainer(transformers.Trainer):
                 delta = torch.zeros_like(embeds_init).uniform_(-1, 1) * input_mask.unsqueeze(3)
                 dims = input_lengths * embeds_init.size(-1)
                 mag = self.args.adv_init_mag / torch.sqrt(dims)
+
+                print(delta.shape)
+                print(mag.view(-1, 1, 1).shape)
+
                 delta = (delta * mag.view(-1, 1, 1)).detach()
             elif self.args.norm_type == "linf":
                 delta = torch.zeros_like(embeds_init).uniform_(-self.args.adv_init_mag,
