@@ -287,7 +287,7 @@ class FreeLBTrainer(transformers.Trainer):
         if isinstance(model, torch.nn.DataParallel):
             embeds_init = model.module.encoder.embeddings.word_embeddings(inputs['input_ids'])
         else:
-            embeds_init = model.embeddings.word_embeddings(inputs['input_ids'])
+            embeds_init = model.bert.embeddings.word_embeddings(inputs['input_ids'])
         if self.args.adv_init_mag > 0:
 
             input_mask = inputs['attention_mask'].to(embeds_init)
@@ -363,7 +363,7 @@ class FreeLBTrainer(transformers.Trainer):
             if isinstance(model, torch.nn.DataParallel):
                 embeds_init = model.module.encoder.embeddings.word_embeddings(inputs['input_ids'])
             else:
-                embeds_init = model.embeddings.word_embeddings(inputs['input_ids'])
+                embeds_init = model.bert.embeddings.word_embeddings(inputs['input_ids'])
 
         if self.args.past_index >= 0:
             self._past = outputs[self.args.past_index]
