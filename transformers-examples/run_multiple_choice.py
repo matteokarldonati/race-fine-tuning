@@ -95,7 +95,7 @@ class DataTrainingArguments:
         default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
     )
 
-
+@dataclass
 class TrainingArguments(TrainingArguments):
     freelb: bool = field(
         default=False, metadata={"help": "Use FreeLB training"}
