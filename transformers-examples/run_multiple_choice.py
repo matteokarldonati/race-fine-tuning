@@ -381,6 +381,13 @@ def main():
         torch.save(predictions_middle, predictions_file_middle)
         torch.save(label_ids_middle, labels_ids_file_middle)
 
+        examples_ids = []
+        for input_feature in test_dataset.features:
+            examples_ids.append(input_feature.example_id)
+
+        examples_ids_file = os.path.join(training_args.output_dir, "examples_ids")
+        torch.save(examples_ids, examples_ids_file)
+
         output_eval_file = os.path.join(training_args.output_dir, "test_results.txt")
 
         if trainer.is_world_master():
