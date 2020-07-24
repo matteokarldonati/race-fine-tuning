@@ -341,6 +341,11 @@ def main():
                              "0 (default value): dynamic loss scaling.\n"
                              "Positive power of 2: static loss scaling value.\n")
 
+    parser.add_argument("--features_file",
+                        default=None,
+                        type=str,
+                        help="the path to the features file to use for training")
+
     args = parser.parse_args()
 
     wandb.config.update(args)
@@ -447,17 +452,21 @@ def main():
     global_step = 0
     if args.do_train:
 
-        cached_features_file_train = os.path.join(
-            args.data_dir,
-            "cached_train_BertTokenizer_{}_{}_bert-race".format(str(args.max_seq_length), 'race', ),
-        )
+        if args.features_file:
+            train_features = torch.load(args.features_file)
 
-        if os.path.exists(cached_features_file_train):
-            train_features = torch.load(cached_features_file_train)
         else:
-            train_features = convert_examples_to_features(
-                train_examples, tokenizer, args.max_seq_length, True)
-            torch.save(train_features, cached_features_file_train)
+            cached_features_file_train = os.path.join(
+                args.data_dir,
+                "cached_train_BertTokenizer_{}_{}_bert-race".format(str(args.max_seq_length), 'race', ),
+            )
+
+            if os.path.exists(cached_features_file_train):
+                train_features = torch.load(cached_features_file_train)
+            else:
+                train_features = convert_examples_to_features(
+                    train_examples, tokenizer, args.max_seq_length, True)
+                torch.save(train_features, cached_features_file_train)
 
         logger.info("***** Running training *****")
         logger.info("  Num examples = %d", len(train_examples))

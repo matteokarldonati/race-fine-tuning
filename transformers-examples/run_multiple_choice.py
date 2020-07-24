@@ -110,7 +110,7 @@ class TrainingArguments(TrainingArguments):
         default=0
     )
     norm_type: str = field(
-        default='l2', metadata={"help": "choices=['l2', 'linf'] "}
+        default='l2', metadata={"help": "choices=['l2', 'linf']"}
     )
     adv_max_norm: float = field(
         default=0, metadata={"help": "set to 0 to be unlimited"}
