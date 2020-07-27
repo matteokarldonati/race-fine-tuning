@@ -21,6 +21,7 @@ import json
 import logging
 import os
 import random
+import time
 
 import numpy as np
 import torch
@@ -349,6 +350,8 @@ def main():
     args = parser.parse_args()
 
     wandb.config.update(args)
+
+    time.sleep(60)
 
     if args.local_rank == -1 or args.no_cuda:
         device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
