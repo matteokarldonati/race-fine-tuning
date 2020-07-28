@@ -155,7 +155,7 @@ def read_race_examples_augmentation(paths):
                     article_adv = replace_names(data_raw["article"], names, adv_names)
 
                     for i in range(len(data_raw['answers'])):
-                        truth = str(ord(data_raw["answers"][i]) - ord("A"))
+                        truth = ord(data_raw['answers'][i]) - ord('A')
                         question_adv = replace_names(data_raw["questions"][i], names, adv_names)
                         options_adv = [replace_names(option, names, adv_names) for option in data_raw["options"][i]]
 
