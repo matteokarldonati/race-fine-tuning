@@ -25,16 +25,15 @@ import time
 
 import numpy as np
 import torch
-from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
-from torch.utils.data.distributed import DistributedSampler
-from tqdm import tqdm, trange
-
 import wandb
-
 from pytorch_pretrained_bert.file_utils import PYTORCH_PRETRAINED_BERT_CACHE
 from pytorch_pretrained_bert.modeling import BertForMultipleChoice
 from pytorch_pretrained_bert.optimization import BertAdam
 from pytorch_pretrained_bert.tokenization import BertTokenizer
+from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data.distributed import DistributedSampler
+from tqdm import tqdm, trange
+from utils import get_adv_names, replace_names, get_names_groups_
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -123,7 +122,55 @@ def read_race_examples(paths):
             with open(filename, 'r', encoding='utf-8') as fpr:
                 data_raw = json.load(fpr)
                 article = data_raw['article']
-                ## for each qn
+                for i in range(len(data_raw['answers'])):
+                    truth = ord(data_raw['answers'][i]) - ord('A')
+                    question = data_raw['questions'][i]
+                    options = data_raw['options'][i]
+                    examples.append(
+                        RaceExample(
+                            race_id=filename + '-' + str(i),
+                            context_sentence=article,
+                            start_ending=question,
+
+                            ending_0=options[0],
+                            ending_1=options[1],
+                            ending_2=options[2],
+                            ending_3=options[3],
+                            label=truth))
+
+    return examples
+
+
+def read_race_examples_augmentation(paths):
+    examples = []
+    for path in paths:
+        filenames = glob.glob(path + "/*txt")
+        for filename in filenames:
+            with open(filename, 'r', encoding='utf-8') as fpr:
+                data_raw = json.load(fpr)
+                article = data_raw['article']
+                names = get_names_groups_(article)
+                for i in range(2):
+                    adv_names = get_adv_names(len(names), None)
+                    article_adv = replace_names(data_raw["article"], names, adv_names)
+
+                    for i in range(len(data_raw['answers'])):
+                        truth = str(ord(data_raw["answers"][i]) - ord("A"))
+                        question_adv = replace_names(data_raw["questions"][i], names, adv_names)
+                        options_adv = [replace_names(option, names, adv_names) for option in data_raw["options"][i]]
+
+                        examples.append(
+                            RaceExample(
+                                race_id=filename + '-' + str(i),
+                                context_sentence=article_adv,
+                                start_ending=question_adv,
+
+                                ending_0=options_adv[0],
+                                ending_1=options_adv[1],
+                                ending_2=options_adv[2],
+                                ending_3=options_adv[3],
+                                label=truth))
+
                 for i in range(len(data_raw['answers'])):
                     truth = ord(data_raw['answers'][i]) - ord('A')
                     question = data_raw['questions'][i]
@@ -390,7 +437,7 @@ def main():
     num_train_steps = None
     if args.do_train:
         train_dir = os.path.join(args.data_dir, 'train')
-        train_examples = read_race_examples([train_dir + '/high', train_dir + '/middle'])
+        train_examples = read_race_examples_augmentation([train_dir + '/high', train_dir + '/middle'])
 
         num_train_steps = int(
             len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps * args.num_train_epochs)
