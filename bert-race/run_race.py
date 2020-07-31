@@ -141,52 +141,71 @@ def read_race_examples(paths):
     return examples
 
 
-def read_race_examples_augmentation(paths):
+## paths is a list containing all paths
+def read_race_examples(paths, perturbation_type,
+                       perturbation_num,
+                       augment,
+                       name_gender_or_race):
     examples = []
     for path in paths:
         filenames = glob.glob(path + "/*txt")
         for filename in filenames:
             with open(filename, 'r', encoding='utf-8') as fpr:
                 data_raw = json.load(fpr)
-                article = data_raw['article']
-                names = get_names_groups(article)
-                for i in range(2):
-                    adv_names = get_adv_names(len(names), None)
-                    article_adv = replace_names(data_raw["article"], names, adv_names)
+                article = data_raw["article"]
 
-                    for i in range(len(data_raw['answers'])):
-                        truth = ord(data_raw['answers'][i]) - ord('A')
-                        question_adv = replace_names(data_raw["questions"][i], names, adv_names)
-                        options_adv = [replace_names(option, names, adv_names) for option in data_raw["options"][i]]
+                if augment or (perturbation_num == 0):
+                    for i in range(len(data_raw["answers"])):
+                        truth = str(ord(data_raw["answers"][i]) - ord("A"))
+                        question = data_raw["questions"][i]
+                        options = data_raw["options"][i]
 
                         examples.append(
                             RaceExample(
                                 race_id=filename + '-' + str(i),
-                                context_sentence=article_adv,
-                                start_ending=question_adv,
+                                context_sentence=article,
+                                start_ending=question,
 
-                                ending_0=options_adv[0],
-                                ending_1=options_adv[1],
-                                ending_2=options_adv[2],
-                                ending_3=options_adv[3],
-                                label=truth))
+                                ending_0=options[0],
+                                ending_1=options[1],
+                                ending_2=options[2],
+                                ending_3=options[3],
+                                label=truth)
+                        )
+                if perturbation_type == 'names':
+                    names = get_names_groups(article)
 
-                for i in range(len(data_raw['answers'])):
-                    truth = ord(data_raw['answers'][i]) - ord('A')
-                    question = data_raw['questions'][i]
-                    options = data_raw['options'][i]
-                    examples.append(
-                        RaceExample(
-                            race_id=filename + '-' + str(i),
-                            context_sentence=article,
-                            start_ending=question,
+                for _ in range(perturbation_num):
+                    if perturbation_type == 'names':
+                        adv_names = get_adv_names(len(names), name_gender_or_race)
+                        article = replace_names(article, names, adv_names)
 
-                            ending_0=options[0],
-                            ending_1=options[1],
-                            ending_2=options[2],
-                            ending_3=options[3],
-                            label=truth))
+                    for i in range(len(data_raw["answers"])):
+                        truth = str(ord(data_raw["answers"][i]) - ord("A"))
 
+                        if perturbation_type == 'names':
+                            question = replace_names(data_raw["questions"][i], names, adv_names)
+                            options = [replace_names(option, names, adv_names) for option in data_raw["options"][i]]
+
+                        if perturbation_type == 'distractor':
+                            distractor = random.choice(data_raw["options"][i])
+                            article = data_raw["article"] + f" The distractor is '{distractor}'."
+
+                            question = data_raw["questions"][i]
+                            options = data_raw["options"][i]
+
+                        examples.append(
+                            RaceExample(
+                                race_id=filename + '-' + str(i),
+                                context_sentence=article,
+                                start_ending=question,
+
+                                ending_0=options[0],
+                                ending_1=options[1],
+                                ending_2=options[2],
+                                ending_3=options[3],
+                                label=truth)
+                        )
     return examples
 
 
@@ -388,12 +407,22 @@ def main():
                         help="Loss scaling to improve fp16 numeric stability. Only used when fp16 set to True.\n"
                              "0 (default value): dynamic loss scaling.\n"
                              "Positive power of 2: static loss scaling value.\n")
+    parser.add_argument('--perturbation_type',
+                        type=str, default=None,
+                        help="choices=['names', 'distractor']")
+    parser.add_argument('--perturbation_num',
+                        type=int, default=0,
+                        help="How many perturbation to perform per example on the training set")
+    parser.add_argument('--augment',
+                        default=False,
+                        help="Perform data augmentation on the training set")
+    parser.add_argument('--name_gender_or_race',
+                        type=str, default=None,
+                        help="choices=['male', 'female'], only if perturbation_type='names'")
 
     args = parser.parse_args()
 
     wandb.config.update(args)
-
-    time.sleep(60)
 
     if args.local_rank == -1 or args.no_cuda:
         device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
@@ -432,7 +461,11 @@ def main():
     num_train_steps = None
     if args.do_train:
         train_dir = os.path.join(args.data_dir, 'train')
-        train_examples = read_race_examples_augmentation([train_dir + '/high', train_dir + '/middle'])
+        train_examples = read_race_examples([train_dir + '/high', train_dir + '/middle'],
+                                            perturbation_type=args.perturbation_type,
+                                            perturbation_num=args.perturbation_num,
+                                            augment=args.augment,
+                                            name_gender_or_race=args.name_gender_or_race)
 
         num_train_steps = int(
             len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps * args.num_train_epochs)
