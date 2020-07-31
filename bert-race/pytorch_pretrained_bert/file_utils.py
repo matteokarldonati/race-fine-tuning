@@ -4,22 +4,21 @@ This file is adapted from the AllenNLP library at https://github.com/allenai/all
 Copyright by the AllenNLP authors.
 """
 
-import os
+import json
 import logging
+import os
 import shutil
 import tempfile
-import json
-from urllib.parse import urlparse
+from functools import wraps
+from hashlib import sha256
 from pathlib import Path
 from typing import Optional, Tuple, Union, IO, Callable, Set
-from hashlib import sha256
-from functools import wraps
-
-from tqdm import tqdm
+from urllib.parse import urlparse
 
 import boto3
-from botocore.exceptions import ClientError
 import requests
+from botocore.exceptions import ClientError
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -156,7 +155,7 @@ def http_get(url: str, temp_file: IO) -> None:
     total = int(content_length) if content_length is not None else None
     progress = tqdm(unit="B", total=total)
     for chunk in req.iter_content(chunk_size=1024):
-        if chunk: # filter out keep-alive new chunks
+        if chunk:  # filter out keep-alive new chunks
             progress.update(len(chunk))
             temp_file.write(chunk)
     progress.close()

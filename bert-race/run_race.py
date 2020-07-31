@@ -33,7 +33,7 @@ from pytorch_pretrained_bert.tokenization import BertTokenizer
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
-from utils import get_adv_names, replace_names, get_names_groups_
+from utils import get_adv_names, replace_names, get_names_groups
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -149,7 +149,7 @@ def read_race_examples_augmentation(paths):
             with open(filename, 'r', encoding='utf-8') as fpr:
                 data_raw = json.load(fpr)
                 article = data_raw['article']
-                names = get_names_groups_(article)
+                names = get_names_groups(article)
                 for i in range(2):
                     adv_names = get_adv_names(len(names), None)
                     article_adv = replace_names(data_raw["article"], names, adv_names)
