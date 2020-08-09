@@ -1,4 +1,7 @@
+import os
+import pickle
 import random
+import sys
 
 import neuralcoref
 import nltk
@@ -14,6 +17,10 @@ MALE_NAMES = names.words('male.txt')
 FEMALE_NAMES = names.words('female.txt')
 
 NAMES = MALE_NAMES + FEMALE_NAMES
+
+ner_dict_path = os.path.join(sys.path[0], 'ner_dict.pkl')
+with open(ner_dict_path, 'rb') as f:
+    NER_DICT = pickle.load(f)
 
 
 def get_names(text):
@@ -50,6 +57,17 @@ def get_names_groups(text):
     return groups
 
 
+def get_entities(text, entity_type):
+    doc = nlp(text)
+    entities = []
+    for x in doc.ents:
+        if x.label_ == entity_type:
+            entities.append(x.text)
+
+    entities = list(set(entities))
+    return entities
+
+
 def get_adv_names(names_num, name_gender_or_race):
     adv_names = []
     for _ in range(names_num):
@@ -62,6 +80,13 @@ def get_adv_names(names_num, name_gender_or_race):
     return adv_names
 
 
+def get_adv_entities(entities_num, entity_type):
+    adv_entities = []
+    for _ in range(entities_num):
+        adv_entities.append(random.choice(NER_DICT[entity_type]))
+    return adv_entities
+
+
 def replace_names(text, names, adv_names):
     if not names:
         return text
@@ -70,5 +95,16 @@ def replace_names(text, names, adv_names):
         for name in name_group:
             adv_text = text.replace(name, adv_names[i])
             text = adv_text
+
+    return adv_text
+
+
+def replace_entities(text, entities, adv_entities):
+    if not entities:
+        return text
+
+    for i, entity in enumerate(entities):
+        adv_text = text.replace(entity, adv_entities[i])
+        text = adv_text
 
     return adv_text
