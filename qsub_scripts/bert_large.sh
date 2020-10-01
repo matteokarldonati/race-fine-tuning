@@ -4,7 +4,7 @@
 #$ -j y
 
 #$ -l tmem=16G
-#$ -l h_rt=100:00:00
+#$ -l h_rt=72:00:00
 #$ -l gpu=true
 # $ -pe gpu 2
 #$ -R y

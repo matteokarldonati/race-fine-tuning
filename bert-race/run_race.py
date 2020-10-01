@@ -24,7 +24,7 @@ import random
 
 import numpy as np
 import torch
-import wandb
+#import wandb
 from pytorch_pretrained_bert.file_utils import PYTORCH_PRETRAINED_BERT_CACHE
 from pytorch_pretrained_bert.modeling import BertForMultipleChoice
 from pytorch_pretrained_bert.optimization import BertAdam
@@ -39,7 +39,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-wandb.init(project="BERT-RACE")
+#wandb.init(project="BERT-RACE")
 
 
 class RaceExample(object):
@@ -438,7 +438,7 @@ def main():
 
     args = parser.parse_args()
 
-    wandb.config.update(args)
+    #wandb.config.update(args)
 
     if args.local_rank == -1 or args.no_cuda:
         device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
@@ -505,7 +505,7 @@ def main():
     elif n_gpu > 1:
         model = torch.nn.DataParallel(model)
 
-    wandb.watch(model, log='all')
+    #wandb.watch(model, log='all')
 
     # Prepare optimizer
     param_optimizer = list(model.named_parameters())
@@ -611,7 +611,7 @@ def main():
 
                 if global_step % 100 == 0:
                     logger.info("Training loss: {}, global step: {}".format(tr_loss / nb_tr_steps, global_step))
-                    wandb.log({'loss': tr_loss / nb_tr_steps}, step=global_step)
+                    #wandb.log({'loss': tr_loss / nb_tr_steps}, step=global_step)
 
             ## evaluate on dev set
             if global_step % 1000 == 0:
@@ -673,7 +673,7 @@ def main():
                           'global_step': global_step,
                           'loss': tr_loss / nb_tr_steps}
 
-                wandb.log({'eval_loss': eval_loss, 'eval_acc': eval_accuracy}, step=global_step)
+                #wandb.log({'eval_loss': eval_loss, 'eval_acc': eval_accuracy}, step=global_step)
 
                 output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
                 with open(output_eval_file, "a+") as writer:
@@ -802,7 +802,7 @@ def main():
         result = {'overall_eval_loss': eval_loss,
                   'overall_eval_accuracy': eval_accuracy}
 
-        wandb.log({'test_loss': eval_loss, 'test_acc': eval_accuracy}, step=global_step)
+        #wandb.log({'test_loss': eval_loss, 'test_acc': eval_accuracy}, step=global_step)
 
         with open(output_eval_file, "a+") as writer:
             for key in sorted(result.keys()):
