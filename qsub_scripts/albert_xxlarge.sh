@@ -4,7 +4,7 @@
 #$ -j y
 
 #$ -l tmem=16G
-#$ -l h_rt=72:00:00
+#$ -l h_rt=100:00:00
 #$ -l gpu=true
 #$ -pe gpu 2
 #$ -R y
@@ -28,7 +28,7 @@ python3 ../transformers-examples/run_multiple_choice.py \
 --num_train_epochs 4 \
 --max_seq_length 640 \
 --output_dir ../output/albert_xxlarge-race \
---per_gpu_eval_batch_size=2 \
---per_gpu_train_batch_size=2 \
---gradient_accumulation_steps 16 \
+--per_gpu_eval_batch_size=1 \
+--per_gpu_train_batch_size=1 \
+--gradient_accumulation_steps 32 \
 --overwrite_output \
