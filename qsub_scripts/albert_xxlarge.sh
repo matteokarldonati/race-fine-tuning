@@ -17,7 +17,7 @@ export LD_LIBRARY_PATH=/share/apps/python-3.7.2-shared/lib:${LD_LIBRARY_PATH}
 source /share/apps/examples/source_files/cuda/cuda-10.1.source
 
 export RACE_DIR=../../RACE
-python ../transformers-examples/run_multiple_choice.py \
+python3 ../transformers-examples/run_multiple_choice.py \
 --task_name race \
 --model_name_or_path albert-xxlarge-v2 \
 --do_train \

@@ -16,7 +16,7 @@ export LD_LIBRARY_PATH=/share/apps/python-3.7.2-shared/lib:${LD_LIBRARY_PATH}
 
 source /share/apps/examples/source_files/cuda/cuda-10.1.source
 
-python ../bert-race/run_race.py \
+python3 ../bert-race/run_race.py \
 --data_dir=RACE \
 --bert_model=bert-large-uncased \
 --output_dir=../output/bert_large-race \
