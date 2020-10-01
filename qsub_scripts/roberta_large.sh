@@ -28,7 +28,7 @@ python3 ../transformers-examples/run_multiple_choice.py \
 --num_train_epochs 4 \
 --max_seq_length 512 \
 --output_dir ../output/roberta_large-race \
---per_gpu_eval_batch_size=2 \
---per_gpu_train_batch_size=2 \
---gradient_accumulation_steps 8 \
+--per_gpu_eval_batch_size=1 \
+--per_gpu_train_batch_size=1 \
+--gradient_accumulation_steps 16 \
 --overwrite_output \
