@@ -6,8 +6,6 @@
 #$ -l tmem=16G
 #$ -l h_rt=100:00:00
 #$ -l gpu=true,gpu_p100=yes
-#$ -pe gpu 2
-#$ -R y
 
 #$ -cwd
 
