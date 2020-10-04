@@ -32,7 +32,6 @@ from pytorch_pretrained_bert.tokenization import BertTokenizer
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
-from utils import get_names_groups, get_adv_names, replace_names, get_entities, get_adv_entities, replace_entities
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -137,91 +136,6 @@ def read_race_examples(paths):
                             ending_3=options[3],
                             label=truth))
 
-    return examples
-
-
-def read_race_examples(paths, perturbation_type,
-                       perturbation_num,
-                       augment,
-                       name_gender_or_race):
-    examples = []
-    for path in paths:
-        filenames = glob.glob(path + "/*txt")
-        for filename in filenames:
-            with open(filename, 'r', encoding='utf-8') as fpr:
-                data_raw = json.load(fpr)
-                article = data_raw["article"]
-
-                perturbated = False
-
-                if perturbation_type == 'names':
-                    names = get_names_groups(article)
-                    if names:
-                        perturbated = True
-
-                if perturbation_type in ['ORG', 'GPE', 'LOC', 'NORP']:
-                    entities = get_entities(article, perturbation_type)
-                    if entities:
-                        perturbated = True
-
-                if augment or (perturbation_num == 0):
-                    for i in range(len(data_raw["answers"])):
-                        truth = str(ord(data_raw["answers"][i]) - ord("A"))
-                        question = data_raw["questions"][i]
-                        options = data_raw["options"][i]
-
-                        examples.append(
-                            RaceExample(
-                                race_id=filename + '-' + str(i),
-                                context_sentence=article,
-                                start_ending=question,
-
-                                ending_0=options[0],
-                                ending_1=options[1],
-                                ending_2=options[2],
-                                ending_3=options[3],
-                                label=truth)
-                        )
-
-                for n in range(perturbation_num):
-                    if perturbation_type == 'names':
-                        adv_names = get_adv_names(len(names), name_gender_or_race)
-                        article = replace_names(article, names, adv_names)
-                    if perturbation_type in ['ORG', 'GPE', 'LOC', 'NORP']:
-                        adv_entities = get_adv_entities(len(entities), perturbation_type)
-                        article = replace_entities(article, entities, adv_entities)
-
-                    for i in range(len(data_raw["answers"])):
-                        truth = str(ord(data_raw["answers"][i]) - ord("A"))
-
-                        if perturbation_type == 'names':
-                            question = replace_names(data_raw["questions"][i], names, adv_names)
-                            options = [replace_names(option, names, adv_names) for option in data_raw["options"][i]]
-
-                        if perturbation_type in ['ORG', 'GPE', 'LOC', 'NORP']:
-                            question = replace_entities(data_raw["questions"][i], entities, adv_entities)
-                            options = [replace_entities(option, entities, adv_entities) for option in
-                                       data_raw["options"][i]]
-
-                        if perturbation_type == 'distractor':
-                            distractor = random.choice(data_raw["options"][i])
-                            article = f"The distractor is '{distractor}'. " + data_raw["article"]
-
-                            question = data_raw["questions"][i]
-                            options = data_raw["options"][i]
-
-                        examples.append(
-                            RaceExample(
-                                race_id=filename + '-' + str(i),
-                                context_sentence=article,
-                                start_ending=question,
-
-                                ending_0=options[0],
-                                ending_1=options[1],
-                                ending_2=options[2],
-                                ending_3=options[3],
-                                label=truth)
-                        )
     return examples
 
 

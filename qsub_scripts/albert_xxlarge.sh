@@ -32,3 +32,4 @@ python3 ../transformers-examples/run_multiple_choice.py \
 --per_gpu_train_batch_size=1 \
 --gradient_accumulation_steps 32 \
 --overwrite_output \
+--save_steps 5000 \
