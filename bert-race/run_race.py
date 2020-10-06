@@ -391,11 +391,7 @@ def main():
     num_train_steps = None
     if args.do_train:
         train_dir = os.path.join(args.data_dir, 'train')
-        train_examples = read_race_examples([train_dir + '/high', train_dir + '/middle'],
-                                            perturbation_type=args.perturbation_type,
-                                            perturbation_num=args.perturbation_num,
-                                            augment=args.augment,
-                                            name_gender_or_race=args.name_gender_or_race)
+        train_examples = read_race_examples([train_dir+'/high', train_dir+'/middle'])
 
         num_train_steps = int(
             len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps * args.num_train_epochs)
