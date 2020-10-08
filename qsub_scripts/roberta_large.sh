@@ -24,7 +24,7 @@ python3 ../transformers-examples/run_multiple_choice.py \
 --data_dir $RACE_DIR \
 --learning_rate 1e-5 \
 --weight_decay 0.1 \
---warmup_steps 0.06 \
+--warmup_steps 2 \
 --num_train_epochs 4 \
 --max_seq_length 512 \
 --output_dir ../output/roberta_large-race \
